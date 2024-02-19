@@ -7,14 +7,15 @@
 </head>
 <body>
     <h1>Add Definition</h1>
-    <form id="addForm">
+    <form id="create-form">
         <label for="word">Word:</label><br>
         <input type="text" id="word" name="word" required><br>
         <label for="definition">Definition:</label><br>
         <textarea id="definition" name="definition" required></textarea><br>
         <button type="submit">Add</button>
     </form>
-    <div id="feedback"></div>
+    <div id="message"></div>
+    <script src="messages.js"></script>
     <script src="store.js"></script>
 </body>
 </html>

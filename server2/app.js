@@ -1,9 +1,22 @@
+// ChatGPT was used in this lab
 const http = require('http');
 const url = require('url');
+const messages = require('./messages');
 
 let dictionary = [];
+let totalRequests = 0;
 
 const server = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET, POST');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        return res.end();
+    }
+
+    totalRequests++;
     const parsedUrl = url.parse(req.url, true);
 
     if (parsedUrl.pathname === '/api/definitions') {
@@ -13,15 +26,27 @@ const server = http.createServer((req, res) => {
                 body += chunk.toString();
             });
             req.on('end', () => {
-                const { word, definition } = JSON.parse(body);
-                const existingWord = dictionary.find(entry => entry.word === word);
-                if (existingWord) {
+                try {
+                    const { word, definition } = JSON.parse(body);
+                    if (typeof word !== 'string' || typeof definition !== 'string' || !word.trim() || !definition.trim()) {
+                        throw new Error(messages.invalidInput);
+                    }
+
+                    const existingWord = dictionary.find(entry => entry.word === word);
+                    if (existingWord) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ message: messages.entryExists(word) }));
+                    }
+                    dictionary.push({ word, definition });
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        message: messages.entryRecorded(totalRequests, word, definition),
+                        totalEntries: dictionary.length
+                    }));
+                } catch (error) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ message: `Warning! '${word}' already exists.` }));
+                    res.end(JSON.stringify({ message: messages.invalidInput }));
                 }
-                dictionary.push({ word, definition });
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: `Request #${dictionary.length}`, dictionary }));
             });
         } else if (req.method === 'GET') {
             const word = parsedUrl.query.word;
@@ -31,12 +56,12 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify(entry));
             } else {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: `Request# ${dictionary.length + 1}, word '${word}' not found!` }));
+                res.end(JSON.stringify({ message: messages.wordNotFound(totalRequests, word) }));
             }
         }
     } else {
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Not Found' }));
+        res.end(JSON.stringify({ message: messages.notFound }));
     }
 });
 
