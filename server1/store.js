@@ -1,3 +1,4 @@
+// ChatGPT was used in this lab
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('create-form');
     const messageDiv = document.getElementById('message');
